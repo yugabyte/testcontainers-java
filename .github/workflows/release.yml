@@ -21,4 +21,4 @@ jobs:
       - name: Clear existing docker image cache
         run: docker image prune -af
       - id: gradle-release
-        run: ./gradlew -Pversion=$GITHUB_REF release --scan --no-daemon -i
+        run: ./gradlew -Pversion="${{github.event.release.tag_name}}" release --scan --no-daemon -i
