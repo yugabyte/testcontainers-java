@@ -33,6 +33,7 @@ import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.DockerLoggerFactory;
 import org.testcontainers.utility.LogUtils;
 import org.testcontainers.utility.MountableFile;
+import org.testcontainers.utility.PathUtils;
 import org.testcontainers.utility.ResourceReaper;
 import org.zeroturnaround.exec.InvalidExitValueException;
 import org.zeroturnaround.exec.ProcessExecutor;
@@ -76,7 +77,7 @@ public class DockerComposeContainer<SELF extends DockerComposeContainer<SELF>> e
      */
     private final String identifier;
     private final List<File> composeFiles;
-    private Set<ParsedDockerComposeFile> parsedComposeFiles;
+    private DockerComposeFiles dockerComposeFiles;
     private final Map<String, Integer> scalingPreferences = new HashMap<>();
     private DockerClient dockerClient;
     private boolean localCompose;
@@ -125,7 +126,7 @@ public class DockerComposeContainer<SELF extends DockerComposeContainer<SELF>> e
     public DockerComposeContainer(String identifier, List<File> composeFiles) {
 
         this.composeFiles = composeFiles;
-        this.parsedComposeFiles = composeFiles.stream().map(ParsedDockerComposeFile::new).collect(Collectors.toSet());
+        this.dockerComposeFiles = new DockerComposeFiles(composeFiles);
 
         // Use a unique identifier so that containers created for this compose environment can be identified
         this.identifier = identifier;
@@ -183,8 +184,7 @@ public class DockerComposeContainer<SELF extends DockerComposeContainer<SELF>> e
         // Pull images using our docker client rather than compose itself,
         // (a) as a workaround for https://github.com/docker/compose/issues/5854, which prevents authenticated image pulls being possible when credential helpers are in use
         // (b) so that credential helper-based auth still works when compose is running from within a container
-        parsedComposeFiles.stream()
-            .flatMap(it -> it.getDependencyImageNames().stream())
+        dockerComposeFiles.getDependencyImages()
             .forEach(imageName -> {
                 try {
                     log.info("Preemptively checking local images for '{}', referenced via a compose file or transitive Dockerfile. If not available, it will be pulled.", imageName);
@@ -618,12 +618,13 @@ class ContainerisedDockerCompose extends GenericContainer<ContainerisedDockerCom
         // Map the docker compose file into the container
         final File dockerComposeBaseFile = composeFiles.get(0);
         final String pwd = dockerComposeBaseFile.getAbsoluteFile().getParentFile().getAbsolutePath();
-        final String containerPwd = MountableFile.forHostPath(pwd).getFilesystemPath();
+        final String containerPwd =  convertToUnixFilesystemPath(pwd);
 
         final List<String> absoluteDockerComposeFiles = composeFiles.stream()
             .map(File::getAbsolutePath)
             .map(MountableFile::forHostPath)
             .map(MountableFile::getFilesystemPath)
+            .map(this::convertToUnixFilesystemPath)
             .collect(toList());
         final String composeFileEnvVariableValue = Joiner.on(UNIX_PATH_SEPERATOR).join(absoluteDockerComposeFiles); // we always need the UNIX path separator
         logger().debug("Set env COMPOSE_FILE={}", composeFileEnvVariableValue);
@@ -668,6 +669,12 @@ class ContainerisedDockerCompose extends GenericContainer<ContainerisedDockerCom
                 " whilst running command: " +
                 StringUtils.join(this.getCommandParts(), ' '));
         }
+    }
+
+    private String convertToUnixFilesystemPath(String path) {
+        return SystemUtils.IS_OS_WINDOWS
+            ? PathUtils.createMinGWPath(path).substring(1)
+            : path;
     }
 }
 
