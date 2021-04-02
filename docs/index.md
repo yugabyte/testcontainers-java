@@ -1,6 +1,7 @@
 # Testcontainers
 
-![Testcontainers logo](./logo.png)
+<!-- allow aspect ratio computation to reduce layout shift. CSS enforces max-width: 100% -->
+<img src="logo.png" alt="Testcontainers logo" width="1024" height="512"/> 
 
 ## About
 
