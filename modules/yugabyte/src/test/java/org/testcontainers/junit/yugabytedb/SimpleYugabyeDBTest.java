@@ -30,7 +30,7 @@ public class SimpleYugabyeDBTest extends AbstractContainerDatabaseTest {
     @Test
     public void testExplicitInitScript() throws SQLException {
         try (YugabyteDBContainer yugabyte = new YugabyteDBContainer(YUGABYTEDB_IMAGE)
-            .withInitScript("somepath/init_postgresql.sql")) { // CockroachDB is expected to be compatible with Postgres
+            .withInitScript("somepath/init_postgresql.sql")) {
             yugabyte.start();
 
             ResultSet resultSet = performQuery(yugabyte, "SELECT foo FROM bar");
