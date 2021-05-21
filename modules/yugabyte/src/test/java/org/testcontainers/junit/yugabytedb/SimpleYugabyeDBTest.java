@@ -21,7 +21,7 @@ public class SimpleYugabyeDBTest extends AbstractContainerDatabaseTest {
     public void testSimple() throws SQLException {
         try (YugabyteDBContainer yugabyte = new YugabyteDBContainer(YUGABYTEDB_IMAGE)) {
             yugabyte.start();
-            ResultSet resultSet = performQuery(yugabyte, "SELECT 1");
+            ResultSet resultSet = performQuery(yugabyte, "SELECT 1;");
             int resultSetInt = resultSet.getInt(1);
             assertEquals("A basic SELECT query succeeds", 1, resultSetInt);
         }
